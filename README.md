@@ -33,7 +33,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rusty-schema-diff = "0.1.0"
+rusty-schema-diff = "0.1.1"
 ```
 
 ## Getting Started
