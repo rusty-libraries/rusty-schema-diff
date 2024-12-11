@@ -1,7 +1,7 @@
 [package]
 name = "rusty-schema-diff"
 description = "A powerful schema evolution analyzer supporting JSON Schema, OpenAPI, Protobuf, and SQL DDL"
-license-file = "LICENSE.md"
+license-file = "LICENSE"
 documentation = "https://rusty-libraries.github.io/rusty-schema-diff/"
 readme = "README.md"
 homepage = "https://github.com/rusty-libraries/rusty-schema-diff"
