@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Rusty Schema Diff
 
 ![Crates.io](https://img.shields.io/crates/v/rusty-schema-diff) ![docs.rs](https://img.shields.io/docsrs/rusty-schema-diff) ![License](https://img.shields.io/crates/l/rusty-schema-diff)
@@ -121,4 +120,3 @@ This library is licensed under the MIT License. See the [LICENSE](LICENSE.md) fi
 =======
 # rusty-schema-diff
 A powerful schema evolution analyzer supporting JSON Schema, OpenAPI, Protobuf, and SQL DDL
->>>>>>> d990a6dfd9918ad05da42c56bb8a36f1a2079904
