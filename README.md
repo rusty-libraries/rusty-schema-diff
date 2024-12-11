@@ -117,6 +117,3 @@ For detailed information on all available analyzers and their functionality, ple
 ## License
 
 This library is licensed under the MIT License. See the [LICENSE](LICENSE.md) file for details.
-=======
-# rusty-schema-diff
-A powerful schema evolution analyzer supporting JSON Schema, OpenAPI, Protobuf, and SQL DDL
