@@ -1,0 +1,25 @@
+[package]
+name = "rusty-schema-diff"
+description = "A powerful schema evolution analyzer supporting JSON Schema, OpenAPI, Protobuf, and SQL DDL"
+license-file = "LICENSE.md"
+documentation = "https://rusty-libraries.github.io/rusty-schema-diff/"
+readme = "README.md"
+homepage = "https://github.com/rusty-libraries/rusty-schema-diff"
+keywords = ["schema", "diff", "openapi", "protobuf", "sql"]
+categories = ["development-tools", "web-programming"]
+exclude = ["docs/", "rustfmt.toml"]
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2.0.6"
+semver = { version = "1.0", features = ["serde"] }
+openapiv3 = "2.0.0"
+sqlparser = "0.52.0"
+protobuf = "3.2"
+serde_yaml = "0.9"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
