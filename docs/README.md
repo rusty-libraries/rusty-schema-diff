@@ -1,197 +1,211 @@
-## Rusty Schema Diff - Function Documentation
+# Rusty Schema Diff - API Documentation
 
-### Schema Analysis API
+## Core Types and Traits
 
-#### Analyze Schema Compatibility
+### SchemaAnalyzer Trait
+The foundational trait for implementing schema analysis functionality.
 
-**Functionality:**  
-Analyze compatibility between two schema versions, detecting breaking changes and generating detailed reports. Supports multiple schema formats including JSON Schema, OpenAPI, Protobuf, and SQL DDL.
+```rust
+pub trait SchemaAnalyzer {
+    fn analyze_compatibility(&self, old: &Schema, new: &Schema) -> Result<CompatibilityReport>;
+    fn generate_migration_path(&self, old: &Schema, new: &Schema) -> Result<MigrationPlan>;
+    fn validate_changes(&self, changes: &[SchemaChange]) -> Result<ValidationResult>;
+}
+```
 
-**Parameters:**
+#### Methods
+- **analyze_compatibility**
+  - Analyzes compatibility between two schema versions
+  - Returns a detailed `CompatibilityReport`
+  - Parameters:
+    - `old`: Reference to the original schema
+    - `new`: Reference to the new schema version
+  - Errors: Returns `SchemaDiffError` for parsing or comparison failures
 
-- **old_schema (Schema, required):**  
-  The original schema version to compare against.
+- **generate_migration_path**
+  - Generates step-by-step migration instructions
+  - Returns a `MigrationPlan` containing ordered migration steps
+  - Parameters:
+    - `old`: Source schema version
+    - `new`: Target schema version
+  - Errors: Returns `SchemaDiffError` for invalid migration paths
 
-- **new_schema (Schema, required):**  
-  The new schema version being analyzed.
+- **validate_changes**
+  - Validates proposed schema changes
+  - Returns a `ValidationResult` with validation status and issues
+  - Parameters:
+    - `changes`: Slice of proposed `SchemaChange` instances
+  - Errors: Returns `SchemaDiffError` for validation failures
 
-**Response:**
+### Schema Type
+Represents a versioned schema instance.
 
-- **compatibility_report (CompatibilityReport):**  
-  Detailed report containing:
-  - **is_compatible (bool):** Overall compatibility status
-  - **compatibility_score (u32):** Score from 0-100
-  - **changes (Vec<SchemaChange>):** List of detected changes
-  - **issues (Vec<CompatibilityIssue>):** Any compatibility issues found
+```rust
+pub struct Schema {
+    pub format: SchemaFormat,
+    pub content: String,
+    pub version: Version,
+}
+```
+
+#### Fields
+- **format**: The schema format (JsonSchema, OpenAPI, Protobuf, SqlDDL)
+- **content**: Raw schema content as a string
+- **version**: Semantic version of the schema
+
+#### Methods
+- **new(format: SchemaFormat, content: String, version: Version) -> Schema**
+  - Creates a new schema instance
+  - Validates format and content during construction
+
+### CompatibilityReport
+Detailed analysis of schema compatibility.
+
+```rust
+pub struct CompatibilityReport {
+    pub is_compatible: bool,
+    pub compatibility_score: u32,
+    pub changes: Vec<SchemaChange>,
+    pub issues: Vec<CompatibilityIssue>,
+    pub metadata: HashMap<String, String>,
+}
+```
+
+#### Fields
+- **is_compatible**: Overall compatibility status
+- **compatibility_score**: Numeric score (0-100) indicating compatibility level
+- **changes**: Vector of detected schema changes
+- **issues**: Vector of compatibility issues found
+- **metadata**: Additional analysis metadata
+
+## Schema Analysis APIs
 
 ### JSON Schema Analysis
 
-#### Analyze JSON Schema Changes
+#### JsonSchemaAnalyzer
+Specialized analyzer for JSON Schema compatibility.
 
-**Functionality:**  
-Analyze changes between JSON Schema versions, with support for complex nested structures and references.
+```rust
+pub struct JsonSchemaAnalyzer;
+```
 
-**Usage Example:**
+##### Implementation Details
+- Supports JSON Schema drafts 4, 6, 7, and 2019-09
+- Handles nested schema structures
+- Validates type compatibility
+- Tracks property requirements
+- Analyzes array constraints
 
+##### Example Usage
 ```rust
 use rusty_schema_diff::{Schema, SchemaFormat, JsonSchemaAnalyzer, SchemaAnalyzer};
 use semver::Version;
 
-let old_schema = Schema::new(
-    SchemaFormat::JsonSchema,
-    r#"{
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "age": {"type": "integer"}
-        }
-    }"#.to_string(),
-    Version::parse("1.0.0").unwrap()
-);
-
-let new_schema = Schema::new(
-    SchemaFormat::JsonSchema,
-    r#"{
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "age": {"type": "integer"},
-            "email": {"type": "string", "format": "email"}
-        }
-    }"#.to_string(),
-    Version::parse("1.1.0").unwrap()
-);
-
 let analyzer = JsonSchemaAnalyzer;
 let report = analyzer.analyze_compatibility(&old_schema, &new_schema)?;
 
-println!("Compatibility Score: {}", report.compatibility_score);
+// Access detailed changes
+for change in report.changes {
+    println!("Location: {}", change.location);
+    println!("Description: {}", change.description);
+    println!("Type: {:?}", change.change_type);
+}
 ```
 
 ### OpenAPI Analysis
 
-#### Analyze OpenAPI Changes
-
-**Functionality:**  
-Analyze changes between OpenAPI specifications, including endpoints, parameters, request bodies, and responses.
-
-**Usage Example:**
+#### OpenApiAnalyzer
+Specialized analyzer for OpenAPI specifications.
 
 ```rust
-use rusty_schema_diff::prelude::*;
+pub struct OpenApiAnalyzer;
+```
 
-let old_api = Schema::new(
-    SchemaFormat::OpenAPI,
-    // Your OpenAPI spec here
-    openapi_yaml.to_string(),
-    Version::parse("1.0.0").unwrap()
-);
+##### Analysis Coverage
+- Endpoint paths and operations
+- Request/response schemas
+- Parameters and headers
+- Security schemes
+- Media types
+- Server configurations
+- API metadata
+
+##### Breaking Change Detection
+- Removed endpoints
+- Changed parameter requirements
+- Modified response structures
+- Security requirement changes
+- Schema incompatibilities
+
+##### Example Usage
+```rust
+use rusty_schema_diff::prelude::*;
 
 let analyzer = OpenApiAnalyzer;
 let report = analyzer.analyze_compatibility(&old_api, &new_api)?;
 
-// Check for breaking changes in endpoints
-for change in report.changes {
-    if change.is_breaking {
-        println!("Breaking change in {}: {}", change.location, change.description);
-    }
-}
+// Filter breaking changes
+let breaking_changes: Vec<_> = report.changes
+    .iter()
+    .filter(|c| c.is_breaking)
+    .collect();
 ```
 
 ### SQL DDL Analysis
 
-#### Analyze SQL Schema Changes
-
-**Functionality:**  
-Analyze changes between SQL DDL schemas, including table structures, columns, constraints, and indexes.
-
-**Usage Example:**
+#### SqlAnalyzer
+Analyzes changes in SQL database schemas.
 
 ```rust
-use rusty_schema_diff::prelude::*;
+pub struct SqlAnalyzer;
+```
 
-let old_ddl = Schema::new(
-    SchemaFormat::SqlDDL,
-    r#"
-    CREATE TABLE users (
-        id INTEGER PRIMARY KEY,
-        name VARCHAR(255) NOT NULL
-    );
-    "#.to_string(),
-    Version::parse("1.0.0").unwrap()
-);
+##### Supported Operations
+- Table creation/deletion
+- Column modifications
+- Index changes
+- Constraint updates
+- View modifications
+- Trigger changes
 
+##### Migration Generation
+```rust
 let analyzer = SqlAnalyzer;
-let report = analyzer.analyze_compatibility(&old_ddl, &new_ddl)?;
-
-// Generate migration SQL
 let plan = analyzer.generate_migration_path(&old_ddl, &new_ddl)?;
+
+// Access migration steps
 for step in plan.steps {
-    println!("Migration SQL: {}", step);
+    println!("SQL: {}", step);
 }
 ```
 
 ### Protobuf Analysis
 
-#### Analyze Protobuf Changes
-
-**Functionality:**  
-Analyze changes between Protobuf schemas, including messages, fields, and services.
-
-**Usage Example:**
+#### ProtobufAnalyzer
+Analyzes Protocol Buffer schema evolution.
 
 ```rust
-use rusty_schema_diff::prelude::*;
-
-let old_proto = Schema::new(
-    SchemaFormat::Protobuf,
-    r#"
-    syntax = "proto3";
-    message User {
-        string name = 1;
-        int32 age = 2;
-    }
-    "#.to_string(),
-    Version::parse("1.0.0").unwrap()
-);
-
-let analyzer = ProtobufAnalyzer;
-let report = analyzer.analyze_compatibility(&old_proto, &new_proto)?;
-
-// Check compatibility
-if report.is_compatible {
-    println!("Schemas are compatible");
-    for change in report.changes {
-        println!("Change: {}", change.description);
-    }
-}
+pub struct ProtobufAnalyzer;
 ```
 
-### Migration Plan Generation
+##### Analysis Features
+- Message structure changes
+- Field number validation
+- Type compatibility checks
+- Service definition changes
+- Enum modifications
+- Package organization
 
-#### Generate Migration Path
+##### Wire Format Compatibility
+- Checks field number reuse
+- Validates type changes
+- Ensures backward compatibility
+- Verifies required fields
 
-**Functionality:**  
-Generate step-by-step migration plans between schema versions.
+## Error Handling
 
-**Parameters:**
-
-- **old_schema (Schema, required):**  
-  The source schema version.
-
-- **new_schema (Schema, required):**  
-  The target schema version.
-
-**Response:**
-
-- **migration_plan (MigrationPlan):**  
-  Contains:
-  - **steps (Vec<String>):** Ordered list of migration steps
-  - **metadata (HashMap<String, String>):** Additional migration information
-
-### Error Handling
-
-The library uses a custom error type `SchemaDiffError` that covers various error cases:
+### SchemaDiffError
+Comprehensive error type for schema analysis operations.
 
 ```rust
 pub enum SchemaDiffError {
@@ -204,23 +218,35 @@ pub enum SchemaDiffError {
 }
 ```
 
-### Best Practices
+#### Error Categories
+- **ParseError**: Schema parsing failures
+- **ComparisonError**: Analysis comparison issues
+- **InvalidFormat**: Unsupported schema formats
+- **IoError**: File system operations
+- **JsonError**: JSON processing errors
+- **ProtobufError**: Protobuf-specific issues
 
-1. **Version Management:**
-   - Always use semantic versioning for your schemas
-   - Include version information in schema metadata
+## Best Practices
 
-2. **Compatibility Analysis:**
-   - Run compatibility checks before deploying schema changes
-   - Review all breaking changes carefully
-   - Consider backward compatibility requirements
+### Version Management
+1. Use semantic versioning consistently
+2. Include version metadata in schemas
+3. Track version dependencies
 
-3. **Migration Planning:**
-   - Generate and review migration plans before implementation
-   - Test migrations in a staging environment
-   - Have rollback plans ready
+### Compatibility Analysis
+1. Run analysis before deployments
+2. Review breaking changes carefully
+3. Maintain backward compatibility
+4. Document version constraints
 
-4. **Error Handling:**
-   - Implement proper error handling for all schema operations
-   - Log and monitor schema analysis results
-   - Validate schemas before analysis
+### Migration Planning
+1. Generate and verify migration plans
+2. Test migrations in staging
+3. Prepare rollback procedures
+4. Version migration scripts
+
+### Error Handling
+1. Implement comprehensive error handling
+2. Log analysis results
+3. Monitor migration execution
+4. Validate input schemas
